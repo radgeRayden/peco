@@ -1,0 +1,86 @@
+VERSION := "trunk"
+TAG := "v0.18.1.4"
+SUMMARY := "Native WebGPU implementation based on wgpu-core "
+
+update-url "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/recipes/wgpu.eo"
+
+LIBNAME := "wgpu_native"
+
+# Build from source
+fn git-release-dir (make)
+    then
+        build-path := (tempdir)
+        cmd :=
+            shell build-path
+
+        cmd "git clone https://github.com/gfx-rs/wgpu-native/ --recurse-submodules ."
+        cmd "git checkout {VERSION}"
+        tag := ((rshell build-path) "git describe --abbrev=0 --tags HEAD")
+        cmd :=
+            shell build-path
+                dict
+                    WGPU_NATIVE_VERSION = tag
+        cmd "{make} package -j {cpu-core-count}"
+        commonpath (extract "{build-path}/dist/wgpu--release.zip")
+
+# Pre-built binaries
+fn release-dir (platform arch)
+    (commonpath
+        (extract
+            (download
+                "https://github.com/gfx-rs/wgpu-native/releases/download/{TAG}/wgpu-{platform}-{arch}-release.zip")))
+
+bindings :=
+    download "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/bindings/wgpu.sc"
+
+license := (download "https://raw.githubusercontent.com/gfx-rs/wgpu-native/trunk/LICENSE.MIT")
+
+package wgpu-native
+    platform linux unknown
+    summary SUMMARY
+    depends ffi-helper
+
+    preinstall-dir := (git-release-dir "make")
+    alias "/include/webgpu.h" "{preinstall-dir}/webgpu.h"
+    alias "/include/wgpu.h" "{preinstall-dir}/wgpu.h"
+    alias "/lib/lib{LIBNAME}.so" "{preinstall-dir}/lib{LIBNAME}.so"
+    alias "/lib/scopes/packages/wgpu.sc" bindings
+    alias "/licenses/wgpu-native.txt" license
+
+package wgpu-native
+    platform windows-mingw
+    summary SUMMARY
+    depends ffi-helper
+
+    preinstall-dir := (git-release-dir "mingw32-make")
+    alias "/include/webgpu.h" "{preinstall-dir}/webgpu.h"
+    alias "/include/wgpu.h" "{preinstall-dir}/wgpu.h"
+    alias "/lib/{LIBNAME}.dll" "{preinstall-dir}/{LIBNAME}.dll"
+    alias "/lib/scopes/packages/wgpu.sc" bindings
+    alias "/licenses/wgpu-native.txt" license
+
+package wgpu-native-release
+    platform linux
+    version TAG
+    summary SUMMARY
+
+    dir := (release-dir "linux" "x86_64")
+
+    alias "/include/webgpu.h" "{dir}/webgpu.h"
+    alias "/include/wgpu.h" "{dir}/wgpu.h"
+    alias "/lib/lib{LIBNAME}.so" "{dir}/lib{LIBNAME}.so"
+    alias "/lib/scopes/packages/wgpu.sc" bindings
+    alias "/licenses/wgpu-native.txt" license
+
+package wgpu-native-release
+    platform windows windows-mingw
+    version TAG
+    summary SUMMARY
+
+    dir := (release-dir "windows" "x86_64")
+
+    alias "/include/webgpu.h" "{dir}/webgpu.h"
+    alias "/include/wgpu.h" "{dir}/wgpu.h"
+    alias "/lib/{LIBNAME}.dll" "{dir}/{LIBNAME}.dll"
+    alias "/lib/scopes/packages/wgpu.sc" bindings
+    alias "/licenses/wgpu-native.txt" license
