@@ -1,5 +1,5 @@
-using import enum radl.strfmt radl.version-string String
-import .logger sdl wgpu
+using import enum radl.IO.FileStream radl.strfmt radl.version-string String
+import .config .logger sdl wgpu
 
 PECO-VERSION := (git-version)
 run-stage;
@@ -101,6 +101,16 @@ fn acquire-surface-texture (surface)
         abort;
 
 fn main (argc argv)
+    # read config
+    let cfg =
+        try
+            fs := FileStream "config.toml" FileMode.Read
+            'read-all-string fs
+        then (cfg-str)
+            config.parse cfg-str
+        else
+            config.default;
+
     status :=
         sdl.Init
             | sdl.SDL_INIT_VIDEO sdl.SDL_INIT_TIMER sdl.SDL_INIT_GAMECONTROLLER
@@ -113,8 +123,8 @@ fn main (argc argv)
         sdl.CreateWindow f"peco ${PECO-VERSION}"
             sdl.SDL_WINDOWPOS_UNDEFINED
             sdl.SDL_WINDOWPOS_UNDEFINED
-            1280
-            720
+            i32 cfg.window.width
+            i32 cfg.window.height
             0
 
     if (window-handle == null)
@@ -193,9 +203,9 @@ fn main (argc argv)
             device = device
             usage = wgpu.TextureUsage.RenderAttachment
             format = 'BGRA8UnormSrgb
-            width = 1280
-            height = 720
-            presentMode = 'Fifo
+            width = u32 cfg.window.width
+            height = u32 cfg.window.height
+            presentMode = 'FifoRelaxed
 
     queue := wgpu.DeviceGetQueue device
 

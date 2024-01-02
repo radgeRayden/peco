@@ -1,0 +1,18 @@
+VERSION := "master"
+SUMMARY := "TOML C library"
+URL := "https://github.com/arp242/toml-c/archive/{VERSION}.tar.gz"
+
+preinstall-dir :=
+    then
+        source-path := (commonpath (extract (download URL)))
+        cmd := (shell source-path)
+        cmd "make"
+        source-path
+
+package toml
+    version VERSION
+    summary SUMMARY
+    platform linux unknown
+
+    alias "/lib/libtoml.so" "{preinstall-dir}/libtoml.so.1.0"
+    alias "/include/toml-c.h" "{preinstall-dir}/header/toml-c.h"

@@ -1,0 +1,8 @@
+[window]
+resizable = true
+fullscreen = false
+width = 1920
+height = 1080
+
+[renderer]
+presentation_model = FifoRelaxed
