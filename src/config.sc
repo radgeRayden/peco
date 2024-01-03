@@ -36,6 +36,52 @@ inline match-string-enum (ET value)
                 raise;
         hash (tolower value)
 
+inline try-set (dst table key)
+    T := typeof dst
+
+    inline copy-field (getter setter)
+        field := getter table key
+        if field.ok
+            setter field
+
+    static-match T
+    case i64
+        copy-field toml.table_int
+            (f) -> (dst = f.u.i)
+    case f64
+        copy-field toml.table_double
+            (f) -> (dst = f.u.d)
+    case bool
+        copy-field toml.table_bool
+            (f) -> (dst = f.u.b)
+    case String
+        copy-field toml.table_string
+            (f) -> (dst = ('from-rawstring String f.u.s))
+    default
+        static-if (T < CEnum)
+            copy-field toml.table_string
+                inline (f)
+                    try (dst = (match-string-enum T ('from-rawstring String f.u.s)))
+                    else ()
+        else
+            static-error "unsupported configuration type"
+
+fn toml->struct (table dst)
+    recurse := this-function
+    va-map
+        inline (fT)
+            k T := keyof fT.Type, unqualified fT.Type
+            field := getattr dst k
+
+            key := static-eval (k as string)
+            static-if (T < CStruct)
+                new-table := toml.table_table table key
+                if (new-table != null)
+                    recurse new-table field
+            else
+                try-set field table key
+        (typeof dst) . __fields__
+
 struct PecoConfig plain
     window :
         struct PecoWindowConfig plain
@@ -50,38 +96,6 @@ struct PecoConfig plain
 fn default ()
     (PecoConfig)
 
-inline try-set (cfg field table)
-    dst := getattr cfg field
-    T := typeof dst
-    fname := static-eval (field as string)
-
-    static-match T
-    case i64
-        f := toml.table_int table fname
-        if f.ok
-            dst = f.u.i
-    case f64
-        f := toml.table_double table fname
-        if f.ok
-            dst = f.u.d
-    case bool
-        f := toml.table_bool table fname
-        if f.ok
-            dst = f.u.b
-    case String
-        f := toml.table_string table fname
-        if f.ok
-            dst = 'from-rawstring String f.u.s
-    default
-        static-if (T < CEnum)
-            f := toml.table_string table fname
-            if f.ok
-                value := 'from-rawstring String f.u.s
-                try (dst = (match-string-enum T value))
-                else ()
-        else
-            static-error "unsupported configuration type"
-
 fn parse (str)
     err := heapbuffer char 256
     err-ptr err-size := 'data err
@@ -92,18 +106,8 @@ fn parse (str)
     if (result == null)
         logger.write-warning f"While parsing config file: ${String err-ptr err-size}"
     else
-        t := toml.table_table result "window"
-        if (t != null)
-            window := cfg.window
-            try-set window 'resizable t
-            try-set window 'fullscreen t
-            try-set window 'width t
-            try-set window 'height t
+        toml->struct result cfg
 
-        t := toml.table_table result "renderer"
-        if (t != null)
-            renderer := cfg.renderer
-            try-set renderer 'presentation-model t
     cfg
 do
     let parse default

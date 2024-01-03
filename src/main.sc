@@ -205,7 +205,7 @@ fn main (argc argv)
             format = 'BGRA8UnormSrgb
             width = u32 cfg.window.width
             height = u32 cfg.window.height
-            presentMode = (report cfg.renderer.presentation-model)
+            presentMode = cfg.renderer.presentation-model
 
     queue := wgpu.DeviceGetQueue device
 
