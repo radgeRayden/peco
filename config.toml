@@ -5,4 +5,4 @@ width = 1920
 height = 1080
 
 [renderer]
-presentation_model = FifoRelaxed
+presentation-model = "fiforelaxed"
