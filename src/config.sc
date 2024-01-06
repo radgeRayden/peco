@@ -1,5 +1,6 @@
-using import Buffer print radl.strfmt String struct
-import .logger .toml .wgpu
+using import Buffer .exceptions print radl.IO.FileStream radl.strfmt
+    \ .common String struct
+import .logger .toml
 
 spice collect-enum-fields (ET)
     using import Array radl.String+
@@ -36,7 +37,7 @@ inline match-string-enum (ET value)
                 raise;
         hash (tolower value)
 
-inline try-set (dst table key)
+fn try-set (dst table key)
     T := typeof dst
 
     inline copy-field (getter setter)
@@ -71,10 +72,11 @@ fn toml->struct (table dst)
     va-map
         inline (fT)
             k T := keyof fT.Type, unqualified fT.Type
+            sT := superof T
             field := getattr dst k
 
             key := static-eval (k as string)
-            static-if (T < CStruct)
+            static-if ((sT == CStruct) or (sT == Struct))
                 new-table := toml.table_table table key
                 if (new-table != null)
                     recurse new-table field
@@ -82,33 +84,37 @@ fn toml->struct (table dst)
                 try-set field table key
         (typeof dst) . __fields__
 
-struct PecoConfig plain
-    window :
-        struct PecoWindowConfig plain
-            width : i64
-            height : i64
-            resizable : bool
-            fullscreen : bool
-    renderer :
-        struct PecoRendererConfig plain
-            presentation-model : wgpu.PresentMode
-
-fn default ()
-    (PecoConfig)
-
-fn parse (str)
+fn parse (str cfg)
     err := heapbuffer char 256
     err-ptr err-size := 'data err
     result := toml.parse str err-ptr (err-size as i32)
     defer toml.free result
 
-    local cfg : PecoConfig
     if (result == null)
         logger.write-warning f"While parsing config file: ${String err-ptr err-size}"
+        raise PecoConfigError.ParsingError
     else
         toml->struct result cfg
 
-    cfg
+fn... init (path : String = "config.toml")
+    cfg := (state-accessor) . config
+    cfg.window =
+        typeinit
+            title = f"peco ${(get-version)}"
+            width = 1280
+            height = 720
+            resizable = true
+            fullscreen = false
+
+    cfg.renderer =
+        typeinit
+            presentation-model = 'FifoRelaxed
+
+    try
+        fs := FileStream path FileMode.Read
+        parse ('read-all-string fs) cfg
+    else ()
+
 do
-    let parse default
+    let init
     local-scope;

@@ -1,8 +1,5 @@
-using import enum radl.IO.FileStream radl.strfmt radl.version-string String
+using import .common enum radl.IO.FileStream radl.strfmt String
 import .config .logger sdl wgpu
-
-PECO-VERSION := (git-version)
-run-stage;
 
 inline typeinit@ (...)
     implies (T)
@@ -101,15 +98,8 @@ fn acquire-surface-texture (surface)
         abort;
 
 fn main (argc argv)
-    # read config
-    let cfg =
-        try
-            fs := FileStream "config.toml" FileMode.Read
-            'read-all-string fs
-        then (cfg-str)
-            config.parse cfg-str
-        else
-            config.default;
+    config.init;
+    cfg := state-accessor 'config
 
     status :=
         sdl.Init
@@ -120,7 +110,7 @@ fn main (argc argv)
         abort;
 
     window-handle :=
-        sdl.CreateWindow f"peco ${PECO-VERSION}"
+        sdl.CreateWindow cfg.window.title
             sdl.SDL_WINDOWPOS_UNDEFINED
             sdl.SDL_WINDOWPOS_UNDEFINED
             i32 cfg.window.width
