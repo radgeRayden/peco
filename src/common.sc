@@ -1,5 +1,5 @@
 using import String struct radl.version-string
-import .wgpu
+import sdl .wgpu
 
 PECO-VERSION := (git-version)
 run-stage;
@@ -16,8 +16,12 @@ struct PecoConfig
         struct PecoRendererConfig
             presentation-model : wgpu.PresentMode
 
+struct PecoWindowState
+    handle : (mutable@ sdl.Window)
+
 struct PecoState
     config : PecoConfig
+    window : PecoWindowState
 
 global state : PecoState
 

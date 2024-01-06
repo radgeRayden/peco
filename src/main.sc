@@ -1,5 +1,5 @@
 using import .common enum radl.IO.FileStream radl.strfmt String
-import .config .logger sdl wgpu
+import .config .logger sdl .window wgpu
 
 inline typeinit@ (...)
     implies (T)
@@ -70,9 +70,6 @@ fn create-surface (instance window)
     default
         abort;
 
-fn sdl-error ()
-    'from-rawstring String (sdl.GetError)
-
 fn acquire-surface-texture (surface)
     local surface-texture : wgpu.SurfaceTexture
     wgpu.SurfaceGetCurrentTexture surface &surface-texture
@@ -99,27 +96,8 @@ fn acquire-surface-texture (surface)
 
 fn main (argc argv)
     config.init;
+    window.init;
     cfg := state-accessor 'config
-
-    status :=
-        sdl.Init
-            | sdl.SDL_INIT_VIDEO sdl.SDL_INIT_TIMER sdl.SDL_INIT_GAMECONTROLLER
-
-    if (status < 0)
-        logger.write-fatal "SDL initialization failed." (sdl-error)
-        abort;
-
-    window-handle :=
-        sdl.CreateWindow cfg.window.title
-            sdl.SDL_WINDOWPOS_UNDEFINED
-            sdl.SDL_WINDOWPOS_UNDEFINED
-            i32 cfg.window.width
-            i32 cfg.window.height
-            0
-
-    if (window-handle == null)
-        logger.write-fatal "Could not create a window." (sdl-error)
-        abort;
 
     instance :=
         wgpu.CreateInstance
@@ -127,7 +105,7 @@ fn main (argc argv)
                 backends = wgpu.InstanceBackend.Vulkan
                 flags = wgpu.InstanceFlag.Debug
 
-    surface := create-surface instance window-handle
+    surface := create-surface instance (. (state-accessor) window handle)
 
     local adapter : wgpu.Adapter
     wgpu.InstanceRequestAdapter instance
@@ -238,8 +216,7 @@ fn main (argc argv)
         wgpu.QueueSubmit queue 1 &cmd-buffer
         wgpu.SurfacePresent surface
 
-    sdl.DestroyWindow window-handle
-    sdl.Quit;
+    window.shutdown;
     0
 
 main 0 0
