@@ -1,5 +1,5 @@
-using import String struct radl.version-string
-import sdl .wgpu
+using import print String struct radl.version-string
+import .logger sdl .wgpu
 
 PECO-VERSION := (git-version)
 run-stage;
@@ -15,13 +15,21 @@ struct PecoConfig
     renderer :
         struct PecoRendererConfig
             presentation-model : wgpu.PresentMode
+            log-level : wgpu.LogLevel
 
 struct PecoWindowState
     handle : (mutable@ sdl.Window)
 
+struct PecoRendererState
+    instance : wgpu.Instance
+    surface : wgpu.Surface
+    adapter : wgpu.Adapter
+    device : wgpu.Device
+
 struct PecoState
     config : PecoConfig
     window : PecoWindowState
+    renderer : PecoRendererState
 
 global state : PecoState
 
@@ -37,10 +45,29 @@ inline state-accessor (chain...)
                     chain...
                 attr
 
+        inline __typecall (cls)
+            va-lfold state
+                inline (?? next computed)
+                    getattr computed next
+                chain...
+
 inline get-version ()
     PECO-VERSION
 
+spice SystemLifetimeToken (name dropf)
+    anchor := 'anchor args
+    name := name as Symbol as string
+    qq
+        [do]
+            [let] [('unique Symbol name)] =
+                [typedef] ([..] "SystemLifetimeToken<" [name] ">") :: (tuple)
+                    [inline] __drop (self)
+                        [logger.write-info] "System shutdown:" [name]
+
+            [logger.write-info@] [anchor] "System initialized:" [name]
+            [bitcast] none T
+
 do
-    let PecoConfig
+    let PecoConfig SystemLifetimeToken
     let get-version state-accessor
     local-scope;

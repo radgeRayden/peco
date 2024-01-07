@@ -125,6 +125,43 @@ for scope in ('lineage wgpu)
 
 run-stage;
 
+type+ wgpu.Limits
+    inline... __typecall (cls)
+        super-type.__typecall cls
+            maxTextureDimension1D = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxTextureDimension2D = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxTextureDimension3D = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxTextureArrayLayers = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxBindGroups = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxBindingsPerBindGroup = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxDynamicUniformBuffersPerPipelineLayout = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxDynamicStorageBuffersPerPipelineLayout = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxSampledTexturesPerShaderStage = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxSamplersPerShaderStage = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxStorageBuffersPerShaderStage = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxStorageTexturesPerShaderStage = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxUniformBuffersPerShaderStage = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxUniformBufferBindingSize = wgpu.WGPU_LIMIT_U64_UNDEFINED
+            maxStorageBufferBindingSize = wgpu.WGPU_LIMIT_U64_UNDEFINED
+            minUniformBufferOffsetAlignment = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            minStorageBufferOffsetAlignment = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxVertexBuffers = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxBufferSize = wgpu.WGPU_LIMIT_U64_UNDEFINED
+            maxVertexAttributes = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxVertexBufferArrayStride = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxInterStageShaderComponents = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxInterStageShaderVariables = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxColorAttachments = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxColorAttachmentBytesPerSample = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxComputeWorkgroupStorageSize = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxComputeInvocationsPerWorkgroup = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxComputeWorkgroupSizeX = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxComputeWorkgroupSizeY = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxComputeWorkgroupSizeZ = wgpu.WGPU_LIMIT_U32_UNDEFINED
+            maxComputeWorkgroupsPerDimension = wgpu.WGPU_LIMIT_U32_UNDEFINED
+    case (...)
+        super-type.__typecall ...
+
 do
     Instance := define-object "WGPUInstance" wgpu.Instance wgpu.InstanceRelease wgpu.InstanceReference
     Adapter := define-object "WGPUAdapter" wgpu.Adapter wgpu.AdapterRelease wgpu.AdapterReference

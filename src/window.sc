@@ -30,10 +30,17 @@ fn init ()
 
     ctx.handle = window-handle
 
-fn shutdown ()
-    sdl.DestroyWindow ctx.handle
-    ctx.handle = null
+    SystemLifetimeToken 'Window
+        inline ()
+            sdl.DestroyWindow ctx.handle
+            ctx = (typeinit)
+
+fn get-size ()
+    local width : i32
+    local height : i32
+    sdl.GetWindowSize ctx.handle &width &height
+    _ width height
 
 do
-    let init shutdown
+    let init get-size
     local-scope;
