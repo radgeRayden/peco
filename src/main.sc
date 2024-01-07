@@ -13,13 +13,12 @@ fn main (argc argv)
     local exit? : bool
     while (not exit?)
         local ev : sdl.Event
-        sdl.PollEvent &ev
-
-        switch ev.type
-        case sdl.SDL_QUIT
-            exit? = true
-        default
-            ()
+        while (sdl.PollEvent &ev)
+            switch ev.type
+            case sdl.SDL_QUIT
+                exit? = true
+            default
+                ()
 
         renderer.present;
     0
