@@ -2,7 +2,7 @@ using import .common enum print radl.IO.FileStream radl.strfmt String
 import .config .logger .renderer sdl .window wgpu
 
 @@ 'on logger.on-log
-fn (...)
+inline (...)
     print2 ...
 
 fn main (argc argv)

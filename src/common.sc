@@ -10,8 +10,13 @@ struct PecoConfig
             title : String
             width : i64
             height : i64
-            resizable : bool
             fullscreen : bool
+            hidden : bool
+            borderless : bool
+            resizable : bool
+            minimized : bool
+            maximized : bool
+            always-on-top : bool
     renderer :
         struct PecoRendererConfig
             presentation-model : wgpu.PresentMode

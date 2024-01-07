@@ -16,13 +16,30 @@ fn init ()
         logger.write-fatal "SDL initialization failed." (sdl-error)
         abort;
 
+    inline window-flags (flags...)
+        va-lfold 0:u32
+            inline (k next result)
+                setting := getattr cfg k
+                if setting
+                    result | next
+                else
+                    result
+            flags...
+
     window-handle :=
         sdl.CreateWindow cfg.title
             sdl.SDL_WINDOWPOS_UNDEFINED
             sdl.SDL_WINDOWPOS_UNDEFINED
             i32 cfg.width
             i32 cfg.height
-            0
+            window-flags
+                fullscreen = sdl.SDL_WINDOW_FULLSCREEN_DESKTOP
+                hidden = sdl.SDL_WINDOW_HIDDEN
+                borderless = sdl.SDL_WINDOW_BORDERLESS
+                resizable = sdl.SDL_WINDOW_RESIZABLE
+                minimized = sdl.SDL_WINDOW_MINIMIZED
+                maximized = sdl.SDL_WINDOW_MAXIMIZED
+                always-on-top = sdl.SDL_WINDOW_ALWAYS_ON_TOP
 
     if (window-handle == null)
         logger.write-fatal "Could not create a window." (sdl-error)
