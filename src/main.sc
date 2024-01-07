@@ -93,6 +93,9 @@ fn acquire-surface-texture (surface)
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
         abort;
+@@ 'on logger.on-log
+fn (...)
+    print2 ...
 
 fn main (argc argv)
     config.init;

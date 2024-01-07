@@ -1,4 +1,4 @@
-using import enum print slice String radl.strfmt
+using import enum FunctionChain print slice String radl.strfmt
 String+ := import radl.String+
 
 enum LogLevel plain
@@ -19,6 +19,8 @@ do
 
 run-stage;
 
+fnchain on-log
+
 inline make-log-macro (level anchor?)
     spice (...)
         argc := 'argcount args
@@ -38,14 +40,21 @@ inline make-log-macro (level anchor?)
             path := (sc_anchor_path anchor) as string
             relpath := rslice path (countof (String+.common-prefix (String path) (String module-dir)))
             lineinfo := f"${relpath}:${sc_anchor_lineno anchor}:${sc_anchor_column anchor}:" as string
-            `(print2 [lineinfo] [prefix] args)
+            `(on-log [lineinfo] [prefix] args)
         else
             `()
 
 levels... := va-map ((x) -> x.Name) LogLevel.__fields__
-static-fold (logger-functions = (Scope)) for level in (va-each levels...)
-    name := .. "write-" ((String+.ASCII-tolower (level as string)) as string)
-    logger-functions := 'bind logger-functions (Symbol name) (make-log-macro level false)
+let log-functions =
+    static-fold (logger-functions = (Scope)) for level in (va-each levels...)
+        name := .. "write-" ((String+.ASCII-tolower (level as string)) as string)
+        logger-functions := 'bind logger-functions (Symbol name) (make-log-macro level false)
 
-    name := name .. "@"
-    'bind logger-functions (Symbol name) (make-log-macro level true)
+        name := name .. "@"
+        'bind logger-functions (Symbol name) (make-log-macro level true)
+run-stage;
+
+do
+    using log-functions
+    let on-log
+    local-scope;
