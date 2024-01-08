@@ -105,9 +105,9 @@ fn request-device ()
                 logger.write-fatal f"Could not create device. ${message}"
         &device as voidstar
 
-fn configure-surface (surface)
+fn configure-surface ()
     width height := (window.get-size)
-    wgpu.SurfaceConfigure surface
+    wgpu.SurfaceConfigure ctx.surface
         typeinit@
             device = ctx.device
             usage = wgpu.TextureUsage.RenderAttachment
@@ -144,7 +144,7 @@ fn init ()
     ctx.surface = create-surface ctx.instance
     request-adapter;
     request-device;
-    configure-surface ctx.surface
+    configure-surface;
 
     SystemLifetimeToken 'Renderer
         inline ()
@@ -152,9 +152,9 @@ fn init ()
 
 # RENDERING
 # ==========
-fn acquire-surface-texture (surface)
+fn acquire-surface-texture ()
     local surface-texture : wgpu.SurfaceTexture
-    wgpu.SurfaceGetCurrentTexture surface &surface-texture
+    wgpu.SurfaceGetCurrentTexture ctx.surface &surface-texture
 
     if (surface-texture.status != 'Success)
         logger.write-debug f"The request for the surface texture was unsuccessful: ${surface-texture.status}"
@@ -168,7 +168,7 @@ fn acquire-surface-texture (surface)
     do
         if (surface-texture.texture != null)
             wgpu.TextureRelease surface-texture.texture
-        configure-surface ctx.surface
+        configure-surface;
         raise;
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
@@ -183,7 +183,7 @@ fn present ()
     # [ ] minimize
     # [ ] MSAA
     let surface-texture =
-        try (acquire-surface-texture ctx.surface)
+        try (acquire-surface-texture)
         else (return)
 
     surface-texture-view := wgpu.TextureCreateView surface-texture null
