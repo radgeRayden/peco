@@ -168,10 +168,8 @@ fn acquire-surface-texture (surface)
     do
         if (surface-texture.texture != null)
             wgpu.TextureRelease surface-texture.texture
-        # configure-surface;
-
-        # raise GPUError.DiscardedFrame
-        abort;
+        configure-surface ctx.surface
+        raise;
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
         abort;
@@ -180,11 +178,14 @@ fn present ()
     cmd-encoder := (wgpu.DeviceCreateCommandEncoder ctx.device (typeinit@))
 
     # TODO:
-    # [ ] resizing
+    # [x] resizing
     # [ ] change v-sync
     # [ ] minimize
     # [ ] MSAA
-    surface-texture := (acquire-surface-texture ctx.surface)
+    let surface-texture =
+        try (acquire-surface-texture ctx.surface)
+        else (return)
+
     surface-texture-view := wgpu.TextureCreateView surface-texture null
 
     cmd-encoder :=
