@@ -1,0 +1,10 @@
+/shaders/
+/__pycache__/
+/.gdb_history
+/.eo/
+/bin/
+/.doit.db
+/eo
+/include/
+/lib/
+/licenses/
