@@ -1,32 +1,10 @@
 using import .common enum print radl.strfmt String
 import .logger sdl .wgpu .window
+from wgpu let chained@ typeinit@
 
 cfg := state-accessor 'config 'renderer
 ctx := state-accessor 'renderer
 window-handle := state-accessor 'window 'handle
-
-# HELPERS
-# =======
-inline typeinit@ (...)
-    implies (T)
-        static-assert (T < pointer)
-        imply (& (local (elementof T) ...)) T
-
-inline chained@ (K ...)
-    using wgpu
-    chaintypename := K
-    K := getattr wgpu K
-    chaintype := static-try (getattr SType chaintypename)
-    else
-        (getattr NativeSType chaintypename) as (storageof SType) as SType
-    typeinit@
-        nextInChain = as
-            &
-                local K
-                    chain = typeinit
-                        sType = chaintype
-                    ...
-            mutable@ ChainedStruct
 
 # INITIALIZATION
 # ==============

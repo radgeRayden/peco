@@ -215,4 +215,51 @@ do
     type ShaderStageFlags < integer : u32
         let __typecall = (define-flags wgpu.ShaderStage)
 
+    inline typeinit@ (...)
+        implies (T)
+            static-assert (T < pointer)
+            imply (& (local (elementof T) ...)) T
+
+    inline chained@ (K ...)
+        using wgpu
+        chaintypename := K
+        K := getattr wgpu K
+        chaintype := static-try (getattr SType chaintypename)
+        else
+            (getattr NativeSType chaintypename) as (storageof SType) as SType
+        typeinit@
+            nextInChain = as
+                &
+                    local K
+                        chain = typeinit
+                            sType = chaintype
+                        ...
+                mutable@ ChainedStruct
+
+    fn shader-module-from-SPIRV (code)
+        wgpu.DeviceCreateShaderModule ctx.device
+            chained@ 'ShaderModuleSPIRVDescriptor
+                codeSize = ((countof code) // 4) as u32
+                code = (dupe (code as rawstring as (@ u32)))
+
+    fn shader-module-from-WGSL (code)
+        local desc : wgpu.ShaderModuleWGSLDescriptor
+
+        wgpu.DeviceCreateShaderModule ctx.device
+            chained@ 'ShaderModuleWGSLDescriptor
+                code = (dupe (code as rawstring))
+
+    fn shader-module-from-GLSL (code stage)
+        local defines =
+            arrayof wgpu.ShaderDefine
+                typeinit "gl_VertexID" "gl_VertexIndex"
+                typeinit "gl_InstanceID" "gl_InstanceIndex"
+
+        wgpu.DeviceCreateShaderModule ctx.device
+            chained@ 'ShaderModuleGLSLDescriptor
+                stage = stage
+                code = (dupe (code as rawstring))
+                defineCount = (countof defines)
+                defines = &defines
+
     .. (local-scope) wgpu
