@@ -35,6 +35,14 @@ def task_force_bootstrap():
         'file_dep': ["eo"],
     }
 
+def task_build_shaders():
+    return {
+        'verbosity': 2,
+        'actions': [LongRunning(f"scopes -e -m .src.shaders")],
+        'file_dep': [bootstrap],
+        'uptodate': [False]
+    }
+
 def task_boot():
     return {
         'verbosity': 2,
