@@ -1,4 +1,4 @@
-using import print String struct radl.version-string
+using import Map print String struct radl.ArrayMap radl.version-string
 import .logger sdl .wgpu
 
 PECO-VERSION := (git-version)
@@ -31,10 +31,22 @@ struct PecoRendererState
     adapter : wgpu.Adapter
     device : wgpu.Device
 
+struct PecoResourceManager
+    inline resource-map (T)
+        AT := ArrayMap T
+        struct (.. "ResourceMap<" (static-tostring T) ">")
+            elements : AT
+            mapping : (Map String AT.IndexType)
+
+    shaders : (resource-map wgpu.ShaderModule)
+
+    unlet resource-map
+
 struct PecoState
     config : PecoConfig
     window : PecoWindowState
     renderer : PecoRendererState
+    resources : PecoResourceManager
 
 global state : PecoState
 

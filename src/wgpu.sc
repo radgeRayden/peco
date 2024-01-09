@@ -236,30 +236,4 @@ do
                         ...
                 mutable@ ChainedStruct
 
-    fn shader-module-from-SPIRV (code)
-        wgpu.DeviceCreateShaderModule ctx.device
-            chained@ 'ShaderModuleSPIRVDescriptor
-                codeSize = ((countof code) // 4) as u32
-                code = (dupe (code as rawstring as (@ u32)))
-
-    fn shader-module-from-WGSL (code)
-        local desc : wgpu.ShaderModuleWGSLDescriptor
-
-        wgpu.DeviceCreateShaderModule ctx.device
-            chained@ 'ShaderModuleWGSLDescriptor
-                code = (dupe (code as rawstring))
-
-    fn shader-module-from-GLSL (code stage)
-        local defines =
-            arrayof wgpu.ShaderDefine
-                typeinit "gl_VertexID" "gl_VertexIndex"
-                typeinit "gl_InstanceID" "gl_InstanceIndex"
-
-        wgpu.DeviceCreateShaderModule ctx.device
-            chained@ 'ShaderModuleGLSLDescriptor
-                stage = stage
-                code = (dupe (code as rawstring))
-                defineCount = (countof defines)
-                defines = &defines
-
     .. (local-scope) wgpu
