@@ -191,6 +191,16 @@ fn configure-surface ()
             height = height
             presentMode = cfg.presentation-model
 
+fn configure-renderbuffer ()
+    ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
+    if cfg.msaa
+        ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
+    configure-surface;
+
+fn... set-present-mode (present-mode : wgpu.PresentMode)
+    cfg.presentation-model = present-mode
+    ctx.requires-reconfiguration? = true
+
 fn init ()
     wgpu.SetLogCallback
         fn (level message userdata)
@@ -237,8 +247,7 @@ fn init ()
                 ()
         null
 
-    configure-surface;
-
+    configure-renderbuffer;
     try
         let vertex fragment =
             resources.get-shader (resources.load-shader S"shaders/default-vert.spv")
@@ -246,10 +255,6 @@ fn init ()
 
         ctx.pipeline = create-render-pipeline vertex fragment
     else ()
-
-    ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
-    if cfg.msaa
-        ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
 
     SystemLifetimeToken 'Renderer
         inline ()
@@ -273,10 +278,7 @@ fn acquire-surface-texture ()
     do
         if (surface-texture.texture != null)
             wgpu.TextureRelease surface-texture.texture
-        configure-surface;
-        ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
-        if cfg.msaa
-            ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
+        configure-renderbuffer;
         raise;
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
@@ -285,11 +287,11 @@ fn acquire-surface-texture ()
 fn present ()
     cmd-encoder := (wgpu.DeviceCreateCommandEncoder ctx.device (typeinit@))
 
-    # TODO:
-    # [x] resizing
-    # [ ] change v-sync
-    # [ ] minimize
-    # [x] MSAA
+    if ctx.requires-reconfiguration?
+        configure-renderbuffer;
+        ctx.requires-reconfiguration? = false
+        return;
+
     let surface-texture =
         try (acquire-surface-texture)
         else (return)
@@ -335,5 +337,5 @@ fn present ()
     wgpu.SurfacePresent ctx.surface
 
 do
-    let init present
+    let init present set-present-mode
     local-scope;

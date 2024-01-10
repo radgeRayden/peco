@@ -36,6 +36,8 @@ struct PecoRendererState
     depth-stencil-attachment : wgpu.TextureView
     msaa-resolve-source : wgpu.TextureView
 
+    requires-reconfiguration? : bool
+
 struct PecoResourceManager
     inline resource-map (T)
         AT := ArrayMap T

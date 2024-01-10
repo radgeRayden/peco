@@ -20,6 +20,11 @@ fn main (argc argv)
             switch ev.type
             case sdl.SDL_QUIT
                 exit? = true
+            case sdl.SDL_KEYDOWN ()
+            case sdl.SDL_KEYUP
+                k := ev.key.keysym.sym
+                if (k == sdl.SDLK_SPACE)
+                    renderer.set-present-mode 'Immediate
             default
                 ()
 
