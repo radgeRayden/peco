@@ -188,6 +188,24 @@ fn init ()
     ctx.surface = create-surface ctx.instance
     request-adapter;
     request-device;
+
+    wgpu.DeviceSetUncapturedErrorCallback ctx.device
+        fn (err message userdata)
+            msgstr := () -> ('from-rawstring String message)
+
+            switch err
+            pass 'Validation
+            pass 'OutOfMemory
+            pass 'Internal
+            pass 'Unknown
+            pass 'DeviceLost
+            do
+                logger.write-fatal "\n" (msgstr)
+                abort;
+            default
+                ()
+        null
+
     configure-surface;
 
     try
