@@ -21,6 +21,7 @@ struct PecoConfig
         struct PecoRendererConfig
             presentation-model : wgpu.PresentMode
             log-level : wgpu.LogLevel
+            msaa : bool
 
 struct PecoWindowState
     handle : (mutable@ sdl.Window)
@@ -33,6 +34,7 @@ struct PecoRendererState
 
     pipeline : wgpu.RenderPipeline
     depth-stencil-attachment : wgpu.TextureView
+    msaa-resolve-source : wgpu.TextureView
 
 struct PecoResourceManager
     inline resource-map (T)

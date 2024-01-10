@@ -110,6 +110,7 @@ fn... init (path : String = "config.toml")
         typeinit
             presentation-model = 'FifoRelaxed
             log-level = 'Error
+            msaa = false
 
     try
         fs := FileStream path FileMode.Read

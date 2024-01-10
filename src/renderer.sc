@@ -22,7 +22,21 @@ fn create-depth-buffer (width height)
                 size = typeinit width height 1
                 format = DEPTH-FORMAT
                 mipLevelCount = 1
-                sampleCount = 1
+                sampleCount = cfg.msaa 4:u32 1:u32
+        null
+
+fn create-msaa-resolve-source (width height)
+    width height := |> u32 width height
+    wgpu.TextureCreateView
+        wgpu.DeviceCreateTexture ctx.device
+            typeinit@
+                label = "MSAA resolve source"
+                usage = wgpu.TextureUsage.RenderAttachment
+                dimension = '2D
+                size = typeinit width height 1
+                format = SURFACE-FORMAT
+                mipLevelCount = 1
+                sampleCount = 4
         null
 
 # INITIALIZATION
@@ -148,7 +162,7 @@ fn make-pipeline (vertex fragment)
                     cullMode = 'Back
             multisample =
                 wgpu.MultisampleState
-                    count = 1
+                    count = cfg.msaa 4:u32 1:u32
                     mask = ~0:u32
                     alphaToCoverageEnabled = false
             fragment =
@@ -233,6 +247,8 @@ fn init ()
     else ()
 
     ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
+    if cfg.msaa
+        ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
 
     SystemLifetimeToken 'Renderer
         inline ()
@@ -258,6 +274,8 @@ fn acquire-surface-texture ()
             wgpu.TextureRelease surface-texture.texture
         configure-surface;
         ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
+        if cfg.msaa
+            ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
         raise;
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
@@ -270,7 +288,7 @@ fn present ()
     # [x] resizing
     # [ ] change v-sync
     # [ ] minimize
-    # [ ] MSAA
+    # [x] MSAA
     let surface-texture =
         try (acquire-surface-texture)
         else (return)
@@ -286,7 +304,10 @@ fn present ()
                 colorAttachmentCount = 1
                 colorAttachments =
                     typeinit@
-                        view = surface-texture-view
+                        view =
+                            cfg.msaa ctx.msaa-resolve-source surface-texture-view
+                        resolveTarget =
+                            cfg.msaa surface-texture-view null
                         loadOp = 'Clear
                         storeOp = 'Store
                         clearValue = wgpu.Color 0.017 0.017 0.017 1.0
