@@ -32,6 +32,8 @@ struct PecoRendererState
     device : wgpu.Device
 
     pipeline : wgpu.RenderPipeline
+    depth-stencil-attachment : wgpu.TextureView
+
 struct PecoResourceManager
     inline resource-map (T)
         AT := ArrayMap T

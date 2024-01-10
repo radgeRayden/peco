@@ -1,10 +1,13 @@
-using import .common enum print radl.strfmt String
+using import .common enum print radl.shorthands radl.strfmt String
 import .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
 cfg := state-accessor 'config 'renderer
 ctx := state-accessor 'renderer
 window-handle := state-accessor 'window 'handle
+
+SURFACE-FORMAT := wgpu.TextureFormat.BGRA8UnormSrgb
+DEPTH-FORMAT := wgpu.TextureFormat.Depth32FloatStencil8
 
 # INITIALIZATION
 # ==============
@@ -84,14 +87,14 @@ fn request-device ()
         &device as voidstar
 
 fn configure-surface ()
-    width height := (window.get-size)
+    width height := |> u32 (window.get-size)
     wgpu.SurfaceConfigure ctx.surface
         typeinit@
             device = ctx.device
             usage = wgpu.TextureUsage.RenderAttachment
-            format = 'BGRA8UnormSrgb
-            width = u32 width
-            height = u32 height
+            format = SURFACE-FORMAT
+            width = width
+            height = height
             presentMode = cfg.presentation-model
 
 fn make-pipeline (vertex fragment)
@@ -138,6 +141,25 @@ fn make-pipeline (vertex fragment)
                     entryPoint = "main"
                     targetCount = 1
                     targets = &color-target
+            depthStencil =
+                typeinit@
+                    format = DEPTH-FORMAT
+                    depthWriteEnabled = true
+                    depthCompare = 'Less
+                    stencilFront =
+                        typeinit
+                            compare = 'Always
+                            failOp = 'Zero
+                            depthFailOp = 'Zero
+                            passOp = 'Zero
+                    stencilBack =
+                        typeinit
+                            compare = 'Always
+                            failOp = 'Zero
+                            depthFailOp = 'Zero
+                            passOp = 'Zero
+                    # FIXME: depth bias stuff missing
+
 fn init ()
     wgpu.SetLogCallback
         fn (level message userdata)
@@ -175,6 +197,20 @@ fn init ()
 
         ctx.pipeline = make-pipeline vertex fragment
     else ()
+
+    width height := |> u32 (window.get-size)
+    ctx.depth-stencil-attachment =
+        wgpu.TextureCreateView
+            wgpu.DeviceCreateTexture ctx.device
+                typeinit@
+                    label = "depth buffer"
+                    usage = wgpu.TextureUsage.RenderAttachment
+                    dimension = '2D
+                    size = typeinit width height 1
+                    format = DEPTH-FORMAT
+                    mipLevelCount = 1
+                    sampleCount = 1
+            null
 
     SystemLifetimeToken 'Renderer
         inline ()
@@ -231,6 +267,18 @@ fn present ()
                         loadOp = 'Clear
                         storeOp = 'Store
                         clearValue = wgpu.Color 0.017 0.017 0.017 1.0
+                depthStencilAttachment =
+                    typeinit@
+                        view = ctx.depth-stencil-attachment
+                        depthLoadOp = 'Clear
+                        depthStoreOp = 'Store
+                        depthClearValue = 1.0
+                        depthReadOnly = false
+                        stencilLoadOp = 'Clear
+                        stencilStoreOp = 'Store
+                        stencilClearValue = 0
+                        stencilReadOnly = false
+
     wgpu.RenderPassEncoderSetPipeline render-pass ctx.pipeline
     wgpu.RenderPassEncoderDraw render-pass 3 1 0 0
 
