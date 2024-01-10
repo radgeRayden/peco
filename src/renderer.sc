@@ -9,6 +9,22 @@ window-handle := state-accessor 'window 'handle
 SURFACE-FORMAT := wgpu.TextureFormat.BGRA8UnormSrgb
 DEPTH-FORMAT := wgpu.TextureFormat.Depth32FloatStencil8
 
+# RESOURCE CREATION
+# =================
+fn create-depth-buffer (width height)
+    width height := |> u32 width height
+    wgpu.TextureCreateView
+        wgpu.DeviceCreateTexture ctx.device
+            typeinit@
+                label = "depth buffer"
+                usage = wgpu.TextureUsage.RenderAttachment
+                dimension = '2D
+                size = typeinit width height 1
+                format = DEPTH-FORMAT
+                mipLevelCount = 1
+                sampleCount = 1
+        null
+
 # INITIALIZATION
 # ==============
 enum WindowNativeInfo
@@ -216,19 +232,7 @@ fn init ()
         ctx.pipeline = make-pipeline vertex fragment
     else ()
 
-    width height := |> u32 (window.get-size)
-    ctx.depth-stencil-attachment =
-        wgpu.TextureCreateView
-            wgpu.DeviceCreateTexture ctx.device
-                typeinit@
-                    label = "depth buffer"
-                    usage = wgpu.TextureUsage.RenderAttachment
-                    dimension = '2D
-                    size = typeinit width height 1
-                    format = DEPTH-FORMAT
-                    mipLevelCount = 1
-                    sampleCount = 1
-            null
+    ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
 
     SystemLifetimeToken 'Renderer
         inline ()
@@ -253,6 +257,7 @@ fn acquire-surface-texture ()
         if (surface-texture.texture != null)
             wgpu.TextureRelease surface-texture.texture
         configure-surface;
+        ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
         raise;
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
