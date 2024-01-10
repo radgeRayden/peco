@@ -39,6 +39,70 @@ fn create-msaa-resolve-source (width height)
                 sampleCount = 4
         null
 
+fn create-render-pipeline (vertex fragment)
+    local color-target : wgpu.ColorTargetState
+        format = SURFACE-FORMAT
+        blend =
+            typeinit@
+                color =
+                    wgpu.BlendComponent
+                        operation = 'Add
+                        srcFactor = 'SrcAlpha
+                        dstFactor = 'OneMinusSrcAlpha
+                alpha =
+                    wgpu.BlendComponent
+                        operation = 'Add
+                        srcFactor = 'One
+                        dstFactor = 'OneMinusSrcAlpha
+        writeMask = wgpu.ColorWriteMask.All
+
+    wgpu.DeviceCreateRenderPipeline ctx.device
+        typeinit@
+            label = "Peco Render Pipeline"
+            layout =
+                wgpu.DeviceCreatePipelineLayout ctx.device
+                    typeinit@
+                        label = "peco pip layout"
+            vertex =
+                typeinit
+                    module = vertex
+                    entryPoint = "main"
+            primitive =
+                wgpu.PrimitiveState
+                    topology = 'TriangleList
+                    frontFace = 'CCW
+                    cullMode = 'Back
+            multisample =
+                wgpu.MultisampleState
+                    count = cfg.msaa 4:u32 1:u32
+                    mask = ~0:u32
+                    alphaToCoverageEnabled = false
+            fragment =
+                typeinit@
+                    module = fragment
+                    entryPoint = "main"
+                    targetCount = 1
+                    targets = &color-target
+            depthStencil =
+                typeinit@
+                    format = DEPTH-FORMAT
+                    depthWriteEnabled = true
+                    depthCompare = 'Less
+                    stencilFront =
+                        typeinit
+                            compare = 'Always
+                            failOp = 'Zero
+                            depthFailOp = 'Zero
+                            passOp = 'Zero
+                    stencilBack =
+                        typeinit
+                            compare = 'Always
+                            failOp = 'Zero
+                            depthFailOp = 'Zero
+                            passOp = 'Zero
+                    # FIXME: depth bias stuff missing
+
+
 # INITIALIZATION
 # ==============
 enum WindowNativeInfo
@@ -127,69 +191,6 @@ fn configure-surface ()
             height = height
             presentMode = cfg.presentation-model
 
-fn make-pipeline (vertex fragment)
-    local color-target : wgpu.ColorTargetState
-        format = SURFACE-FORMAT
-        blend =
-            typeinit@
-                color =
-                    wgpu.BlendComponent
-                        operation = 'Add
-                        srcFactor = 'SrcAlpha
-                        dstFactor = 'OneMinusSrcAlpha
-                alpha =
-                    wgpu.BlendComponent
-                        operation = 'Add
-                        srcFactor = 'One
-                        dstFactor = 'OneMinusSrcAlpha
-        writeMask = wgpu.ColorWriteMask.All
-
-    wgpu.DeviceCreateRenderPipeline ctx.device
-        typeinit@
-            label = "Peco Render Pipeline"
-            layout =
-                wgpu.DeviceCreatePipelineLayout ctx.device
-                    typeinit@
-                        label = "peco pip layout"
-            vertex =
-                typeinit
-                    module = vertex
-                    entryPoint = "main"
-            primitive =
-                wgpu.PrimitiveState
-                    topology = 'TriangleList
-                    frontFace = 'CCW
-                    cullMode = 'Back
-            multisample =
-                wgpu.MultisampleState
-                    count = cfg.msaa 4:u32 1:u32
-                    mask = ~0:u32
-                    alphaToCoverageEnabled = false
-            fragment =
-                typeinit@
-                    module = fragment
-                    entryPoint = "main"
-                    targetCount = 1
-                    targets = &color-target
-            depthStencil =
-                typeinit@
-                    format = DEPTH-FORMAT
-                    depthWriteEnabled = true
-                    depthCompare = 'Less
-                    stencilFront =
-                        typeinit
-                            compare = 'Always
-                            failOp = 'Zero
-                            depthFailOp = 'Zero
-                            passOp = 'Zero
-                    stencilBack =
-                        typeinit
-                            compare = 'Always
-                            failOp = 'Zero
-                            depthFailOp = 'Zero
-                            passOp = 'Zero
-                    # FIXME: depth bias stuff missing
-
 fn init ()
     wgpu.SetLogCallback
         fn (level message userdata)
@@ -243,7 +244,7 @@ fn init ()
             resources.get-shader (resources.load-shader S"shaders/default-vert.spv")
             resources.get-shader (resources.load-shader S"shaders/default-frag.spv")
 
-        ctx.pipeline = make-pipeline vertex fragment
+        ctx.pipeline = create-render-pipeline vertex fragment
     else ()
 
     ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
