@@ -40,6 +40,7 @@ fn load-shader (path)
                     code = (dupe (ptr as (@ u32)))
 
 fn get-shader (id)
+    'get resources.shaders.elements id
 
 do
     let load-shader get-shader ShaderStage ShaderLanguage

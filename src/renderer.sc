@@ -1,5 +1,5 @@
 using import .common enum print radl.strfmt String
-import .logger sdl .wgpu .window
+import .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
 cfg := state-accessor 'config 'renderer
@@ -94,6 +94,50 @@ fn configure-surface ()
             height = u32 height
             presentMode = cfg.presentation-model
 
+fn make-pipeline (vertex fragment)
+    local color-target : wgpu.ColorTargetState
+        format = SURFACE-FORMAT
+        blend =
+            typeinit@
+                color =
+                    wgpu.BlendComponent
+                        operation = 'Add
+                        srcFactor = 'SrcAlpha
+                        dstFactor = 'OneMinusSrcAlpha
+                alpha =
+                    wgpu.BlendComponent
+                        operation = 'Add
+                        srcFactor = 'One
+                        dstFactor = 'OneMinusSrcAlpha
+        writeMask = wgpu.ColorWriteMask.All
+
+    wgpu.DeviceCreateRenderPipeline ctx.device
+        typeinit@
+            label = "Peco Render Pipeline"
+            layout =
+                wgpu.DeviceCreatePipelineLayout ctx.device
+                    typeinit@
+                        label = "peco pip layout"
+            vertex =
+                typeinit
+                    module = vertex
+                    entryPoint = "main"
+            primitive =
+                wgpu.PrimitiveState
+                    topology = 'TriangleList
+                    frontFace = 'CCW
+                    cullMode = 'Back
+            multisample =
+                wgpu.MultisampleState
+                    count = 1
+                    mask = ~0:u32
+                    alphaToCoverageEnabled = false
+            fragment =
+                typeinit@
+                    module = fragment
+                    entryPoint = "main"
+                    targetCount = 1
+                    targets = &color-target
 fn init ()
     wgpu.SetLogCallback
         fn (level message userdata)
@@ -123,6 +167,14 @@ fn init ()
     request-adapter;
     request-device;
     configure-surface;
+
+    try
+        let vertex fragment =
+            resources.get-shader (resources.load-shader S"shaders/default-vert.spv")
+            resources.get-shader (resources.load-shader S"shaders/default-frag.spv")
+
+        ctx.pipeline = make-pipeline vertex fragment
+    else ()
 
     SystemLifetimeToken 'Renderer
         inline ()
@@ -179,6 +231,8 @@ fn present ()
                         loadOp = 'Clear
                         storeOp = 'Store
                         clearValue = wgpu.Color 0.017 0.017 0.017 1.0
+    wgpu.RenderPassEncoderSetPipeline render-pass ctx.pipeline
+    wgpu.RenderPassEncoderDraw render-pass 3 1 0 0
 
     wgpu.RenderPassEncoderEnd render-pass
 

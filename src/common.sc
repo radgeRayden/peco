@@ -31,6 +31,7 @@ struct PecoRendererState
     adapter : wgpu.Adapter
     device : wgpu.Device
 
+    pipeline : wgpu.RenderPipeline
 struct PecoResourceManager
     inline resource-map (T)
         AT := ArrayMap T
