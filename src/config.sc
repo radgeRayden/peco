@@ -1,4 +1,4 @@
-using import Buffer .exceptions print radl.IO.FileStream radl.strfmt
+using import Buffer print radl.IO.FileStream radl.strfmt
     \ .common String struct
 import .logger .toml
 
@@ -92,7 +92,7 @@ fn parse (str cfg)
 
     if (result == null)
         logger.write-warning f"While parsing config file: ${String err-ptr err-size}"
-        raise PecoConfigError.ParsingError
+        raise;
     else
         toml->struct result cfg
 
