@@ -166,19 +166,23 @@ fn request-adapter ()
         null
 
 fn request-device ()
-    local device : wgpu.Device
     # TODO: requires further configuration
+    local required-features =
+        arrayof wgpu.FeatureName
+            'Depth32FloatStencil8
     wgpu.AdapterRequestDevice ctx.adapter
         typeinit@
             requiredLimits =
                 typeinit@
                     limits = (wgpu.Limits)
+            requiredFeatureCount = (countof required-features)
+            requiredFeatures = &required-features
         fn (status device message userdata)
             if (status == 'Success)
                 ctx.device = device
             else
                 logger.write-fatal f"Could not create device. ${message}"
-        &device as voidstar
+        null
 
 fn configure-surface ()
     width height := |> u32 (window.get-size)
