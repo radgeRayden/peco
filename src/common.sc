@@ -1,4 +1,4 @@
-using import Map print String struct radl.ArrayMap radl.version-string
+using import Array Map print String struct radl.ArrayMap radl.version-string
 import .logger sdl .wgpu
 
 PECO-VERSION := (git-version)
@@ -26,7 +26,14 @@ struct PecoConfig
 struct PecoWindowState
     handle : (mutable@ sdl.Window)
 
+struct WGPUAdapterInfo
+    adapter : wgpu.Adapter
+    properties : wgpu.AdapterProperties
+    limits : wgpu.SupportedLimits
+    supported-features : (Array wgpu.FeatureName)
+
 struct PecoRendererState
+    available-adapters : (Array WGPUAdapterInfo)
     instance : wgpu.Instance
     surface : wgpu.Surface
     adapter : wgpu.Adapter

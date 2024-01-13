@@ -9,6 +9,18 @@ window-handle := state-accessor 'window 'handle
 SURFACE-FORMAT := wgpu.TextureFormat.BGRA8UnormSrgb
 DEPTH-FORMAT := wgpu.TextureFormat.Depth32FloatStencil8
 
+inline wgpu-array-query (f args...)
+    T@ := elementof (typeof f) (va-countof args...)
+    T := elementof T@ 0
+
+    local result : (Array T)
+    count := f ((va-join args...) null)
+    'resize result count
+
+    ptr := 'data result
+    f ((va-join args...) ptr)
+    result
+
 # RESOURCE CREATION
 # =================
 fn create-depth-buffer (width height)
@@ -153,6 +165,19 @@ fn create-surface (instance)
     default
         abort;
 
+fn query-adapters ()
+    adapters := wgpu-array-query wgpu.InstanceEnumerateAdapters ctx.instance null
+    for adapter in adapters
+        local properties : wgpu.AdapterProperties
+        wgpu.AdapterGetProperties adapter &properties
+
+        local limits : wgpu.SupportedLimits
+        wgpu.AdapterGetLimits adapter &limits
+
+        supported-features := wgpu-array-query wgpu.AdapterEnumerateFeatures adapter
+
+        'emplace-append ctx.available-adapters adapter properties limits supported-features
+
 fn request-adapter ()
     wgpu.InstanceRequestAdapter ctx.instance
         typeinit@
@@ -201,35 +226,6 @@ fn configure-renderbuffer ()
         ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
     configure-surface;
 
-fn log-adapter-info ()
-    adapter-count := wgpu.InstanceEnumerateAdapters ctx.instance null null
-    adapters := alloca-array wgpu.Adapter adapter-count
-    wgpu.InstanceEnumerateAdapters ctx.instance null (view adapters)
-    for i in (range adapter-count)
-        adapter := adapters @ i
-        local props : wgpu.AdapterProperties
-        wgpu.AdapterGetProperties adapter &props
-        logger.write-info props
-        local limits : wgpu.SupportedLimits
-        wgpu.AdapterGetLimits adapter &limits
-        logger.write-info limits
-        feature-count := wgpu.AdapterEnumerateFeatures adapter null
-        features := alloca-array wgpu.FeatureName feature-count
-        wgpu.AdapterEnumerateFeatures adapter features
-        logger.write-info "features:"
-        for i in (range feature-count)
-            feature := features @ i
-            if ((storagecast feature) & 0x00030000)
-                logger.write-info ((storagecast feature) as wgpu.NativeFeature)
-            else
-                logger.write-info feature
-        local capabilities : wgpu.SurfaceCapabilities
-        wgpu.SurfaceGetCapabilities ctx.surface adapter &capabilities
-        logger.write-info capabilities
-        wgpu.SurfaceCapabilitiesFreeMembers capabilities
-
-    lose adapters
-
 fn get-available-present-modes ()
     local present-modes : (Array wgpu.PresentMode)
     local capabilities : wgpu.SurfaceCapabilities
@@ -265,11 +261,11 @@ fn init ()
                 backends = wgpu.InstanceBackend.Vulkan
                 flags = wgpu.InstanceFlag.Debug
 
+    query-adapters;
+
     ctx.surface = create-surface ctx.instance
     request-adapter;
     request-device;
-
-    log-adapter-info;
 
     wgpu.DeviceSetUncapturedErrorCallback ctx.device
         fn (err message userdata)
