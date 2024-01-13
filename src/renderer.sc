@@ -1,4 +1,4 @@
-using import .common enum print radl.shorthands radl.strfmt String
+using import Array .common enum print radl.shorthands radl.strfmt String
 import .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
@@ -201,6 +201,41 @@ fn configure-renderbuffer ()
         ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
     configure-surface;
 
+fn log-adapter-info ()
+    adapter-count := wgpu.InstanceEnumerateAdapters ctx.instance null null
+    adapters := alloca-array wgpu.Adapter adapter-count
+    wgpu.InstanceEnumerateAdapters ctx.instance null (view adapters)
+    for i in (range adapter-count)
+        adapter := adapters @ i
+        local props : wgpu.AdapterProperties
+        wgpu.AdapterGetProperties adapter &props
+        logger.write-info props
+        local limits : wgpu.SupportedLimits
+        wgpu.AdapterGetLimits adapter &limits
+        logger.write-info limits
+        feature-count := wgpu.AdapterEnumerateFeatures adapter null
+        features := alloca-array wgpu.FeatureName feature-count
+        wgpu.AdapterEnumerateFeatures adapter features
+        logger.write-info "features:"
+        for i in (range feature-count)
+            feature := features @ i
+            if ((storagecast feature) & 0x00030000)
+                logger.write-info ((storagecast feature) as wgpu.NativeFeature)
+            else
+                logger.write-info feature
+        local capabilities : wgpu.SurfaceCapabilities
+        wgpu.SurfaceGetCapabilities ctx.surface adapter &capabilities
+        logger.write-info capabilities
+        wgpu.SurfaceCapabilitiesFreeMembers capabilities
+
+    lose adapters
+
+fn get-available-present-modes ()
+    local present-modes : (Array wgpu.PresentMode)
+    local capabilities : wgpu.SurfaceCapabilities
+    wgpu.SurfaceGetCapabilities ctx.surface ctx.adapter ('data capabilities) ()
+    wgpu.SurfaceCapabilitiesFreeMembers capabilities
+
 fn... set-present-mode (present-mode : wgpu.PresentMode)
     cfg.presentation-model = present-mode
     ctx.requires-reconfiguration? = true
@@ -233,6 +268,8 @@ fn init ()
     ctx.surface = create-surface ctx.instance
     request-adapter;
     request-device;
+
+    log-adapter-info;
 
     wgpu.DeviceSetUncapturedErrorCallback ctx.device
         fn (err message userdata)
