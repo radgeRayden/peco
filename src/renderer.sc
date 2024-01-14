@@ -8,6 +8,11 @@ window-handle := state-accessor 'window 'handle
 
 SURFACE-FORMAT := wgpu.TextureFormat.BGRA8UnormSrgb
 DEPTH-FORMAT := wgpu.TextureFormat.Depth32FloatStencil8
+REQUIRED-FEATURES :=
+    arrayof wgpu.FeatureName
+        'Depth32FloatStencil8
+
+OPTIONAL-FEATURES := none
 
 inline wgpu-array-query (f args...)
     T@ := elementof (typeof f) (va-countof args...)
@@ -114,7 +119,6 @@ fn create-render-pipeline (vertex fragment)
                             passOp = 'Zero
                     # FIXME: depth bias stuff missing
 
-
 # INITIALIZATION
 # ==============
 enum WindowNativeInfo
@@ -192,9 +196,7 @@ fn request-adapter ()
 
 fn request-device ()
     # TODO: requires further configuration
-    local required-features =
-        arrayof wgpu.FeatureName
-            'Depth32FloatStencil8
+    local required-features = REQUIRED-FEATURES
     wgpu.AdapterRequestDevice ctx.adapter
         typeinit@
             requiredLimits =
