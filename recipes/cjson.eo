@@ -1,0 +1,43 @@
+VERSION := "master"
+SUMMARY := "Ultralightweight JSON parser in ANSI C"
+
+update-url "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/recipes/cjson.eo"
+
+src-dir :=
+    commonpath
+        extract
+            download "https://github.com/DaveGamble/cJSON/archive/master.zip"
+
+preinstall-dir :=
+    then
+        build-dir := (mkdir "{src-dir}/build")
+        cmd := (shell build-dir)
+        cmd "cmake .. -DENABLE_CJSON_VERSION_SO=Off -DENABLE_CJSON_TEST=Off"
+        cmd "make"
+        build-dir
+
+bindings :=
+    download "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/bindings/cJSON.sc"
+
+license :=
+    download "https://raw.githubusercontent.com/DaveGamble/cJSON/master/LICENSE"
+
+package cJSON
+    summary SUMMARY
+    version VERSION
+    platform linux unknown
+
+    alias "/lib/libcjson.so" "{preinstall-dir}/libcjson.so"
+    alias "include/cJSON.h" "{src-dir}/cJSON.h"
+    alias "/lib/scopes/packages/cJSON.sc" bindings
+    alias "/licenses/cJSON.txt" license
+
+package cJSON
+    summary SUMMARY
+    version VERSION
+    platform windows-mingw
+
+    alias "/lib/libcjson.dll" "{preinstall-dir}/cjson.dll"
+    alias "include/cJSON.h" "{src-dir}/cJSON.h"
+    alias "/lib/scopes/packages/cJSON.sc" bindings
+    alias "/licenses/cJSON.txt" license
