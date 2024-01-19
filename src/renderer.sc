@@ -368,8 +368,18 @@ fn present ()
     wgpu.RenderPassEncoderSetPipeline render-pass ctx.pipeline
     wgpu.RenderPassEncoderDraw render-pass 3 1 0 0
 
-    imgui.render render-pass
+    wgpu.RenderPassEncoderEnd render-pass
 
+    render-pass :=
+        wgpu.CommandEncoderBeginRenderPass cmd-encoder
+            typeinit@
+                colorAttachmentCount = 1
+                colorAttachments =
+                    typeinit@
+                        view = surface-texture-view
+                        loadOp = 'Load
+                        storeOp = 'Store
+    imgui.render render-pass
     wgpu.RenderPassEncoderEnd render-pass
 
     local cmd-buffer = wgpu.CommandEncoderFinish cmd-encoder null

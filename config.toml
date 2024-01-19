@@ -7,4 +7,4 @@ height = 1080
 [renderer]
 presentation-model = "fifo"
 log-level = "warn"
-msaa = false
+msaa = true
