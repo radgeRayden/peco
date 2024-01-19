@@ -1,0 +1,62 @@
+VERSION := "docking_inter"
+SUMMARY := "Dear ImGui: Bloat-free Graphical User interface for C++ with minimal dependencies (cimgui)"
+
+fn imgui-git (platform wgpu-lib sdl-lib)
+    then
+        build-path :=
+            then
+                git-parent := (tempdir)
+                git-dir := "{git-parent}/cimgui"
+                (shell git-parent) "git clone --recursive https://github.com/cimgui/cimgui.git"
+                (shell git-dir) "git checkout {VERSION}"
+                (shell git-dir) "chmod -R a+w .git"
+                git-dir
+
+        project-path := ((rshell ".") "pwd")
+        cmd :=
+            shell build-path
+        imgui-wgpu := "{project-path}/src/imgui"
+        backend-dir := "{build-path}/imgui/backends"
+        wgpu-impl := (download
+            "https://raw.githubusercontent.com/ocornut/imgui/master/backends/imgui_impl_wgpu.cpp")
+
+        cmd "cp {imgui-wgpu}/build_{platform}.sh ./"
+        cmd "cp -f {wgpu-impl} {backend-dir}/imgui_impl_wgpu.cpp"
+        cmd "mkdir lib"
+        cmd "cp {project-path}/lib/{wgpu-lib} ./lib"
+        cmd "cp {project-path}/lib/{sdl-lib} ./lib"
+        cmd "cp -r {project-path}/include/SDL2 ./include"
+        mkdir "{build-path}/include/webgpu"
+        cmd "cp {project-path}/include/wgpu.h ./include/webgpu"
+        cmd "cp {project-path}/include/webgpu.h ./include/webgpu"
+
+        cmd "bash ./build_{platform}.sh"
+
+        build-path
+
+cimgui-license := (download "https://raw.githubusercontent.com/cimgui/cimgui/{VERSION}/LICENSE")
+imgui-license := (download "https://raw.githubusercontent.com/ocornut/imgui/master/LICENSE.txt")
+
+package dear-imgui
+    summary SUMMARY
+    version VERSION
+    platform windows-mingw
+    depends wgpu-native sdl2
+
+    preinstall-dir := (imgui-git "windows" "wgpu_native.dll" "SDL2.dll")
+    alias "/lib/cimgui.dll" "{preinstall-dir}/cimgui.dll"
+    alias "/include/cimgui.h" "{preinstall-dir}/cimgui.h"
+    alias "/licenses/cimgui.txt" cimgui-license
+    alias "/licenses/dear-imgui.txt" imgui-license
+
+package dear-imgui
+    summary SUMMARY
+    version VERSION
+    platform linux
+    depends wgpu-native sdl2
+
+    preinstall-dir := (imgui-git "linux" "libwgpu_native.so" "libSDL2.so")
+    alias "/lib/libcimgui.so" "{preinstall-dir}/libcimgui.so"
+    alias "/include/cimgui.h" "{preinstall-dir}/cimgui.h"
+    alias "/licenses/cimgui.txt" cimgui-license
+    alias "/licenses/dear-imgui.txt" imgui-license
