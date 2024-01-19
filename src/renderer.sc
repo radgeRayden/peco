@@ -1,5 +1,5 @@
 using import Array .common enum print radl.shorthands radl.strfmt String
-import .logger .resources sdl .wgpu .window
+import .imgui .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
 cfg := state-accessor 'config 'renderer
@@ -367,6 +367,8 @@ fn present ()
 
     wgpu.RenderPassEncoderSetPipeline render-pass ctx.pipeline
     wgpu.RenderPassEncoderDraw render-pass 3 1 0 0
+
+    imgui.render render-pass
 
     wgpu.RenderPassEncoderEnd render-pass
 
