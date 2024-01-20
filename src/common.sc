@@ -1,4 +1,4 @@
-using import Array Map print String struct radl.ArrayMap radl.version-string
+using import Array glm Map print String struct radl.ArrayMap radl.version-string
 import .logger sdl .wgpu
 
 PECO-VERSION := (git-version)
@@ -39,11 +39,12 @@ struct PecoRendererState
     adapter : wgpu.Adapter
     device : wgpu.Device
 
-    pipeline : wgpu.RenderPipeline
+    surface-size : ivec2
     depth-stencil-attachment : wgpu.TextureView
     msaa-resolve-source : wgpu.TextureView
-
     requires-reconfiguration? : bool
+
+    pipeline : wgpu.RenderPipeline
 
 struct PecoResourceManager
     inline resource-map (T)

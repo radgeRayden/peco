@@ -11,9 +11,6 @@ fn main (argc argv)
     renderer.init;
     imgui.init;
 
-
-    local demo-window : bool
-
     local exit? : bool
     while (not exit?)
         local ev : sdl.Event
@@ -32,10 +29,7 @@ fn main (argc argv)
             default
                 ()
 
-        imgui.begin-frame;
-        imgui.ShowDemoWindow &demo-window
         renderer.present;
-        imgui.end-frame;
     0
 
 main 0 0

@@ -1,4 +1,4 @@
-using import Array .common enum print radl.shorthands radl.strfmt String
+using import Array .common enum glm print radl.shorthands radl.strfmt String
 import .imgui .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
@@ -212,14 +212,15 @@ fn request-device ()
         null
 
 fn configure-surface ()
-    width height := |> u32 (window.get-size)
+    ww wh := (window.get-size)
+    ctx.surface-size = ivec2 ww wh
     wgpu.SurfaceConfigure ctx.surface
         typeinit@
             device = ctx.device
             usage = wgpu.TextureUsage.RenderAttachment
             format = SURFACE-FORMAT
-            width = width
-            height = height
+            width = u32 ww
+            height = u32 wh
             presentMode = cfg.presentation-model
 
 fn configure-renderbuffer ()
@@ -323,10 +324,13 @@ fn acquire-surface-texture ()
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
         abort;
 
+global demo-window : bool = true
+
 fn present ()
     cmd-encoder := (wgpu.DeviceCreateCommandEncoder ctx.device (typeinit@))
 
     if ctx.requires-reconfiguration?
+        imgui.reset-gpu-state;
         configure-renderbuffer;
         ctx.requires-reconfiguration? = false
         return;
@@ -334,6 +338,7 @@ fn present ()
     let surface-texture =
         try (acquire-surface-texture)
         else (return)
+    imgui.begin-frame;
 
     surface-texture-view := wgpu.TextureCreateView surface-texture null
 
@@ -370,6 +375,9 @@ fn present ()
 
     wgpu.RenderPassEncoderEnd render-pass
 
+    if demo-window
+        imgui.ShowDemoWindow &demo-window
+
     render-pass :=
         wgpu.CommandEncoderBeginRenderPass cmd-encoder
             typeinit@
@@ -379,8 +387,9 @@ fn present ()
                         view = surface-texture-view
                         loadOp = 'Load
                         storeOp = 'Store
-    imgui.render render-pass
+    imgui.render render-pass ctx.surface-size
     wgpu.RenderPassEncoderEnd render-pass
+    imgui.end-frame;
 
     local cmd-buffer = wgpu.CommandEncoderFinish cmd-encoder null
     queue := wgpu.DeviceGetQueue ctx.device

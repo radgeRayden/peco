@@ -1,4 +1,4 @@
-using import ..common
+using import ..common radl.shorthands
 import sdl ..wgpu ..window
 ig := import ".bindings"
 
@@ -21,9 +21,9 @@ fn begin-frame ()
     ig.ImplWGPU_NewFrame;
     ig.NewFrame;
 
-global reset : bool
 fn reset-gpu-state ()
-    reset = true
+    ig.ImplWGPU_InvalidateDeviceObjects;
+    ig.ImplWGPU_CreateDeviceObjects;
     ()
 
 fn process-event (event)
@@ -43,14 +43,11 @@ fn process-event (event)
         deref io.WantCaptureKeyboard
     default false #result
 
-fn render (render-pass)
+fn render (render-pass render-size)
     ig.Render;
-    if (not reset)
-        ig.ImplWGPU_RenderDrawData (ig.GetDrawData) render-pass
-    else
-        ig.ImplWGPU_InvalidateDeviceObjects;
-        ig.ImplWGPU_CreateDeviceObjects;
-        reset = false
+    draw-data := (ig.GetDrawData)
+    draw-data.DisplaySize = ig.Vec2 (|> f32 (unpack render-size))
+    ig.ImplWGPU_RenderDrawData draw-data render-pass
 
 fn shutdown ()
     ig.ImplSDL2_Shutdown;
