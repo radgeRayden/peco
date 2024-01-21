@@ -2,5 +2,4 @@ package bootstrap
     summary "Install peco dependencies"
     version "main"
     platform linux windows-mingw unknown
-    # depends fontdue-native wgpu-native-release sdl2 physfs stb radl dear-imgui miniaudio
-    depends wgpu-native sdl2 stb radl toml
+    depends wgpu-native sdl2 stb radl toml miniaudio cJSON assimp fontdue-native dear-imgui physfs

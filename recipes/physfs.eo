@@ -1,0 +1,57 @@
+VERSION := "main"
+SUMMARY := "A portable, flexible file i/o abstraction."
+
+update-url "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/recipes/physfs.eo"
+
+archive :=
+    download
+        "https://github.com/icculus/physfs/archive/{VERSION}.zip"
+
+fn preinstall-dir (generator make)
+    then
+        build-path :=
+            commonpath
+                extract archive
+        cmd :=
+            shell
+                mkdir "{build-path}/build"
+        install-dir := (tempdir)
+        cmd "cmake .. -G \"{generator}\" -DCMAKE_INSTALL_PREFIX={install-dir}"
+        cmd "{make} -j {cpu-core-count}"
+        cmd "{make} install"
+        install-dir
+
+fn patchelf (soname libpath)
+    then
+        (shell ".") "./bin/patchelf --set-soname {soname} $(realpath {libpath})"
+        libpath
+
+bindings :=
+    download "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/bindings/physfs.sc"
+
+license := (download "https://raw.githubusercontent.com/icculus/physfs/main/LICENSE.txt")
+
+package physfs
+    summary SUMMARY
+    version VERSION
+    platform linux unknown
+    depends patchelf ffi-helper
+
+    preinstall-dir := (preinstall-dir "Unix Makefiles" "make")
+    libpath := (patchelf "libphysfs.so" "{preinstall-dir}/lib/libphysfs.so")
+    alias "lib/libphysfs.so" libpath
+    alias "include/physfs.h" "{preinstall-dir}/include/physfs.h"
+    alias "/lib/scopes/packages/physfs.sc" bindings
+    alias "/licenses/physfs.txt" license
+
+package physfs
+    summary SUMMARY
+    version VERSION
+    platform windows-mingw
+    depends ffi-helper
+
+    preinstall-dir := (preinstall-dir "MinGW Makefiles" "mingw32-make")
+    alias "lib/physfs.dll" "{preinstall-dir}/bin/libphysfs.dll"
+    alias "include/physfs.h" "{preinstall-dir}/include/physfs.h"
+    alias "/lib/scopes/packages/physfs.sc" bindings
+    alias "/licenses/physfs.txt" license

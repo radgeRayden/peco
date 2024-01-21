@@ -1,0 +1,48 @@
+VERSION := "main"
+SUMMARY := "The fastest font renderer in the world, written in pure rust."
+
+update-url "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/recipes/fontdue.eo"
+
+archive :=
+    download
+        "https://codeberg.org/spindlebink/fontdue-native/archive/{VERSION}.tar.gz"
+
+preinstall-dir :=
+    then
+        build-path :=
+            commonpath
+                extract archive
+        cmd :=
+            shell build-path (dict)
+        cmd "cargo build --release"
+        build-path
+
+bindings :=
+    download "https://raw.githubusercontent.com/ScopesCommunity/eo-packages/main/bindings/fontdue.sc"
+
+fontdue-license := (download "https://raw.githubusercontent.com/mooman219/fontdue/master/LICENSE-ZLIB")
+fontdue-native-license :=  (download "https://raw.githubusercontent.com/spindlebink/fontdue-native/main/LICENSE.MIT")
+
+package fontdue-native
+    platform linux unknown
+    version VERSION
+    summary SUMMARY
+    depends ffi-helper
+
+    alias "/include/fontdue.h" "{preinstall-dir}/ffi/fontdue.h"
+    alias "/lib/libfontdue_native.so" "{preinstall-dir}/target/release/libfontdue_native.so"
+    alias "/lib/scopes/packages/fontdue.sc" bindings
+    alias "/licenses/fontdue.txt" fontdue-license
+    alias "/licenses/fontdue-native.txt" fontdue-native-license
+
+package fontdue-native
+    platform windows-mingw
+    version VERSION
+    summary SUMMARY
+    depends ffi-helper
+
+    alias "/include/fontdue.h" "{preinstall-dir}/ffi/fontdue.h"
+    alias "/lib/fontdue_native.dll" "{preinstall-dir}/target/release/fontdue_native.dll"
+    alias "/lib/scopes/packages/fontdue.sc" bindings
+    alias "/licenses/fontdue.txt" fontdue-license
+    alias "/licenses/fontdue-native.txt" fontdue-native-license
