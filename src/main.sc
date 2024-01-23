@@ -5,6 +5,12 @@ import .config .imgui .logger .renderer .resources sdl .window wgpu
 inline (...)
     print2 ...
 
+global demo-window : bool = true
+@@ 'on renderer.imgui
+fn ()
+    if demo-window
+        imgui.ShowDemoWindow &demo-window
+
 fn main (argc argv)
     config.init;
     window.init;

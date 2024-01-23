@@ -1,10 +1,12 @@
-using import Array .common enum glm print radl.shorthands radl.strfmt String
+using import Array .common enum FunctionChain glm print radl.shorthands radl.strfmt String
 import .imgui .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
 cfg := state-accessor 'config 'renderer
 ctx := state-accessor 'renderer
 window-handle := state-accessor 'window 'handle
+
+fnchain on-imgui
 
 SURFACE-FORMAT := wgpu.TextureFormat.BGRA8UnormSrgb
 DEPTH-FORMAT := wgpu.TextureFormat.Depth32FloatStencil8
@@ -324,8 +326,6 @@ fn acquire-surface-texture ()
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
         abort;
 
-global demo-window : bool = true
-
 fn present ()
     cmd-encoder := (wgpu.DeviceCreateCommandEncoder ctx.device (typeinit@))
 
@@ -338,7 +338,6 @@ fn present ()
     let surface-texture =
         try (acquire-surface-texture)
         else (return)
-    imgui.begin-frame;
 
     surface-texture-view := wgpu.TextureCreateView surface-texture null
 
@@ -375,20 +374,20 @@ fn present ()
 
     wgpu.RenderPassEncoderEnd render-pass
 
-    if demo-window
-        imgui.ShowDemoWindow &demo-window
-
-    render-pass :=
-        wgpu.CommandEncoderBeginRenderPass cmd-encoder
-            typeinit@
-                colorAttachmentCount = 1
-                colorAttachments =
-                    typeinit@
-                        view = surface-texture-view
-                        loadOp = 'Load
-                        storeOp = 'Store
-    imgui.render render-pass ctx.surface-size
-    wgpu.RenderPassEncoderEnd render-pass
+    imgui.begin-frame;
+    on-imgui;
+    do
+        render-pass :=
+            wgpu.CommandEncoderBeginRenderPass cmd-encoder
+                typeinit@
+                    colorAttachmentCount = 1
+                    colorAttachments =
+                        typeinit@
+                            view = surface-texture-view
+                            loadOp = 'Load
+                            storeOp = 'Store
+        imgui.render render-pass ctx.surface-size
+        wgpu.RenderPassEncoderEnd render-pass
     imgui.end-frame;
 
     local cmd-buffer = wgpu.CommandEncoderFinish cmd-encoder null
@@ -398,4 +397,5 @@ fn present ()
 
 do
     let init present set-present-mode
+    let imgui = on-imgui
     local-scope;
