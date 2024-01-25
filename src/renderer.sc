@@ -246,6 +246,18 @@ fn... set-present-mode (present-mode : wgpu.PresentMode)
     cfg.present-mode = present-mode
     ctx.requires-reconfiguration? = true
 
+fn... set-msaa (on? : bool)
+    cfg.msaa = on?
+    # FIXME: cache shaders and or pipelines
+    try
+        let vertex fragment =
+            resources.get-shader (resources.load-shader S"shaders/default-vert.spv")
+            resources.get-shader (resources.load-shader S"shaders/default-frag.spv")
+
+        ctx.pipeline = create-render-pipeline vertex fragment
+    else ()
+    ctx.requires-reconfiguration? = true
+
 fn init ()
     wgpu.SetLogCallback
         fn (level message userdata)
@@ -403,6 +415,6 @@ fn present ()
     wgpu.SurfacePresent ctx.surface
 
 do
-    let init present set-present-mode
+    let init present set-present-mode set-msaa
     let imgui = on-imgui
     local-scope;

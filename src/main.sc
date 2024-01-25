@@ -81,6 +81,8 @@ fn ()
         combo-from-enum-choices "Present Mode" cfg.renderer.present-mode
             ctx.renderer.available-present-modes
             (v) -> (renderer.set-present-mode v)
+        if (ig.Checkbox "MSAA enabled" &cfg.renderer.msaa)
+            renderer.set-msaa cfg.renderer.msaa
         ig.End;
 
 fn main (argc argv)
