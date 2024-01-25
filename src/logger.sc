@@ -56,5 +56,5 @@ run-stage;
 
 do
     using log-functions
-    let on-log
+    let write = on-log
     local-scope;
