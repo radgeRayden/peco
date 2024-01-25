@@ -5,6 +5,6 @@ width = 1920
 height = 1080
 
 [renderer]
-presentation-model = "fifo"
+present-mode = "fifo"
 log-level = "warn"
 msaa = true

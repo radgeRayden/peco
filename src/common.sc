@@ -19,7 +19,7 @@ struct PecoConfig
             always-on-top : bool
     renderer :
         struct PecoRendererConfig
-            presentation-model : wgpu.PresentMode
+            present-mode : wgpu.PresentMode
             log-level : wgpu.LogLevel
             msaa : bool
 
@@ -38,6 +38,8 @@ struct PecoRendererState
     surface : wgpu.Surface
     adapter : wgpu.Adapter
     device : wgpu.Device
+
+    available-present-modes : (Array wgpu.PresentMode)
 
     surface-size : ivec2
     depth-stencil-attachment : wgpu.TextureView

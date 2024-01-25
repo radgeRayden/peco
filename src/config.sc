@@ -108,7 +108,7 @@ fn... init (path : String = "config.toml")
 
     cfg.renderer =
         typeinit
-            presentation-model = 'FifoRelaxed
+            present-mode = 'FifoRelaxed
             log-level = 'Error
             msaa = false
 

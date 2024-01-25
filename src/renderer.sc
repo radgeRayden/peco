@@ -223,7 +223,7 @@ fn configure-surface ()
             format = SURFACE-FORMAT
             width = u32 ww
             height = u32 wh
-            presentMode = cfg.presentation-model
+            presentMode = cfg.present-mode
 
 fn configure-renderbuffer ()
     ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
@@ -234,11 +234,16 @@ fn configure-renderbuffer ()
 fn get-available-present-modes ()
     local present-modes : (Array wgpu.PresentMode)
     local capabilities : wgpu.SurfaceCapabilities
-    wgpu.SurfaceGetCapabilities ctx.surface ctx.adapter ('data capabilities) ()
+    wgpu.SurfaceGetCapabilities ctx.surface ctx.adapter &capabilities
+
+    for i in (range capabilities.presentModeCount)
+        'append present-modes (capabilities.presentModes @ i)
+
     wgpu.SurfaceCapabilitiesFreeMembers capabilities
+    present-modes
 
 fn... set-present-mode (present-mode : wgpu.PresentMode)
-    cfg.presentation-model = present-mode
+    cfg.present-mode = present-mode
     ctx.requires-reconfiguration? = true
 
 fn init ()
@@ -297,6 +302,8 @@ fn init ()
 
         ctx.pipeline = create-render-pipeline vertex fragment
     else ()
+
+    ctx.available-present-modes = (get-available-present-modes)
 
     SystemLifetimeToken 'Renderer
         inline ()
