@@ -1,4 +1,5 @@
-using import Array .common enum FunctionChain glm print radl.shorthands radl.strfmt String
+using import Array .common enum FunctionChain glm Option print \
+    radl.shorthands radl.strfmt String
 import .imgui .logger .resources sdl .wgpu .window
 from wgpu let chained@ typeinit@
 
@@ -30,35 +31,41 @@ inline wgpu-array-query (f args...)
 
 # RESOURCE CREATION
 # =================
-fn create-depth-buffer (width height)
+fn... create-render-target (name, width, height, fmt, sample-count, bindable? : bool = false)
     width height := |> u32 width height
+    let usage-flags =
+        if bindable?
+            wgpu.TextureUsage.RenderAttachment | wgpu.TextureUsage.TextureBinding
+        else
+            wgpu.TextureUsage.RenderAttachment
+
     wgpu.TextureCreateView
         wgpu.DeviceCreateTexture ctx.device
             typeinit@
-                label = "depth buffer"
-                usage = wgpu.TextureUsage.RenderAttachment
+                label = name
+                usage = usage-flags
                 dimension = '2D
                 size = typeinit width height 1
-                format = DEPTH-FORMAT
+                format = fmt
                 mipLevelCount = 1
-                sampleCount = cfg.msaa 4:u32 1:u32
+                sampleCount = u32 sample-count
         null
+
+fn create-depth-buffer (width height)
+    create-render-target "PECO depth buffer" width height DEPTH-FORMAT (cfg.msaa 4:u32 1:u32)
 
 fn create-msaa-resolve-source (width height)
-    width height := |> u32 width height
-    wgpu.TextureCreateView
-        wgpu.DeviceCreateTexture ctx.device
-            typeinit@
-                label = "MSAA resolve source"
-                usage = wgpu.TextureUsage.RenderAttachment
-                dimension = '2D
-                size = typeinit width height 1
-                format = SURFACE-FORMAT
-                mipLevelCount = 1
-                sampleCount = 4
-        null
+    create-render-target "PECO MSAA resolve src" width height SURFACE-FORMAT 4
 
-fn create-render-pipeline (vertex fragment)
+fn... create-render-pipeline (vertex, fragment, msaa?, layout = none, depth? : bool = true)
+    let layout =
+        static-if (none? layout)
+            wgpu.DeviceCreatePipelineLayout ctx.device
+                typeinit@
+                    label = "peco pip layout"
+        else
+            layout
+
     local color-target : wgpu.ColorTargetState
         format = SURFACE-FORMAT
         blend =
@@ -75,13 +82,28 @@ fn create-render-pipeline (vertex fragment)
                         dstFactor = 'OneMinusSrcAlpha
         writeMask = wgpu.ColorWriteMask.All
 
+    local depth-stencil-state : wgpu.DepthStencilState
+        format = DEPTH-FORMAT
+        depthWriteEnabled = true
+        depthCompare = 'Less
+        stencilFront =
+            typeinit
+                compare = 'Always
+                failOp = 'Zero
+                depthFailOp = 'Zero
+                passOp = 'Zero
+        stencilBack =
+            typeinit
+                compare = 'Always
+                failOp = 'Zero
+                depthFailOp = 'Zero
+                passOp = 'Zero
+        # FIXME: depth bias stuff missing
+
     wgpu.DeviceCreateRenderPipeline ctx.device
         typeinit@
             label = "Peco Render Pipeline"
-            layout =
-                wgpu.DeviceCreatePipelineLayout ctx.device
-                    typeinit@
-                        label = "peco pip layout"
+            layout = layout
             vertex =
                 typeinit
                     module = vertex
@@ -93,7 +115,7 @@ fn create-render-pipeline (vertex fragment)
                     cullMode = 'Back
             multisample =
                 wgpu.MultisampleState
-                    count = cfg.msaa 4:u32 1:u32
+                    count = msaa? 4:u32 1:u32
                     mask = ~0:u32
                     alphaToCoverageEnabled = false
             fragment =
@@ -102,24 +124,7 @@ fn create-render-pipeline (vertex fragment)
                     entryPoint = "main"
                     targetCount = 1
                     targets = &color-target
-            depthStencil =
-                typeinit@
-                    format = DEPTH-FORMAT
-                    depthWriteEnabled = true
-                    depthCompare = 'Less
-                    stencilFront =
-                        typeinit
-                            compare = 'Always
-                            failOp = 'Zero
-                            depthFailOp = 'Zero
-                            passOp = 'Zero
-                    stencilBack =
-                        typeinit
-                            compare = 'Always
-                            failOp = 'Zero
-                            depthFailOp = 'Zero
-                            passOp = 'Zero
-                    # FIXME: depth bias stuff missing
+            depthStencil = (depth? &depth-stencil-state null)
 
 # INITIALIZATION
 # ==============
@@ -226,10 +231,35 @@ fn configure-surface ()
             presentMode = cfg.present-mode
 
 fn configure-renderbuffer ()
-    ctx.depth-stencil-attachment = (create-depth-buffer (window.get-size))
-    if cfg.msaa
-        ctx.msaa-resolve-source = (create-msaa-resolve-source (window.get-size))
     configure-surface;
+
+fn configure-internal-render-target (force?)
+    :: render-target-outdated!
+
+    height := (f32 ctx.surface-size.y) * ctx.resolution-scaling
+    width := height * ctx.aspect-ratio
+
+    if (ctx.main-render-target == null)
+        merge render-target-outdated! width height
+
+    cwidth cheight := |> f32 (unpack ctx.render-target-size)
+
+    # if the size changed we need to recreate it.
+    if (cwidth != width or cheight != height or force?)
+        merge render-target-outdated! width height
+
+    return;
+
+    render-target-outdated! (width height) ::
+
+    ctx.main-render-target =
+        create-render-target "Internal Render Target" width height SURFACE-FORMAT 1 (bindable? = true)
+    ctx.depth-stencil-attachment = create-depth-buffer width height
+    if cfg.msaa
+        ctx.msaa-resolve-source = create-msaa-resolve-source width height
+
+    ctx.outdated-render-target? = true
+    ()
 
 fn get-available-present-modes ()
     local present-modes : (Array wgpu.PresentMode)
@@ -244,7 +274,7 @@ fn get-available-present-modes ()
 
 fn... set-present-mode (present-mode : wgpu.PresentMode)
     cfg.present-mode = present-mode
-    ctx.requires-reconfiguration? = true
+    ctx.outdated-surface? = true
 
 fn... set-msaa (on? : bool)
     cfg.msaa = on?
@@ -254,9 +284,18 @@ fn... set-msaa (on? : bool)
             resources.get-shader (resources.load-shader S"shaders/default-vert.spv")
             resources.get-shader (resources.load-shader S"shaders/default-frag.spv")
 
-        ctx.pipeline = create-render-pipeline vertex fragment
+        ctx.pipeline = create-render-pipeline vertex fragment on?
+        configure-internal-render-target true
     else ()
-    ctx.requires-reconfiguration? = true
+
+fn... set-resolution-scaling (scale : f32, ratio : f32)
+    if (scale != ctx.resolution-scaling or ratio != ctx.aspect-ratio)
+        ctx.resolution-scaling = scale
+        ctx.aspect-ratio = ratio
+
+        configure-internal-render-target false
+case (scale : f32)
+    this-function scale (f32 ctx.aspect-ratio)
 
 fn init ()
     wgpu.SetLogCallback
@@ -306,15 +345,59 @@ fn init ()
                 ()
         null
 
-    configure-renderbuffer;
+    configure-surface;
+    ctx.resolution-scaling = cfg.resolution-scaling
+    ctx.aspect-ratio = (16 / 9)
+
     try
         let vertex fragment =
             resources.get-shader (resources.load-shader S"shaders/default-vert.spv")
             resources.get-shader (resources.load-shader S"shaders/default-frag.spv")
 
-        ctx.pipeline = create-render-pipeline vertex fragment
-    else ()
+        ctx.pipeline = create-render-pipeline vertex fragment cfg.msaa
 
+        let vertex fragment =
+            resources.get-shader (resources.load-shader S"shaders/scaled-output-vert.spv")
+            resources.get-shader (resources.load-shader S"shaders/scaled-output-frag.spv")
+
+        local bgroup-layout-entries =
+            arrayof wgpu.BindGroupLayoutEntry
+                typeinit
+                    binding = 0
+                    visibility = wgpu.ShaderStage.Fragment
+                    sampler =
+                        typeinit
+                            type = 'Filtering
+                typeinit
+                    binding = 1
+                    visibility = wgpu.ShaderStage.Fragment
+                    texture =
+                        typeinit
+                            sampleType = 'Float
+                            viewDimension = '2D
+
+        ctx.scaled-output-bindgroup-layout =
+            wgpu.DeviceCreateBindGroupLayout ctx.device
+                typeinit@
+                    label = "PECO bind group layout"
+                    entryCount = (countof bgroup-layout-entries)
+                    entries = (&bgroup-layout-entries as (@ wgpu.BindGroupLayoutEntry))
+
+        local bgroup-layout =
+            storagecast ctx.scaled-output-bindgroup-layout
+
+        layout :=
+            wgpu.DeviceCreatePipelineLayout ctx.device
+                typeinit@
+                    label = "PECO pipeline layout"
+                    bindGroupLayoutCount = 1
+                    bindGroupLayouts = (dupe &bgroup-layout)
+
+        ctx.scaled-output-pipeline =
+            create-render-pipeline vertex fragment false layout false
+    else (abort)
+
+    configure-internal-render-target false
     ctx.available-present-modes = (get-available-present-modes)
 
     SystemLifetimeToken 'Renderer
@@ -339,7 +422,7 @@ fn acquire-surface-texture ()
     do
         if (surface-texture.texture != null)
             wgpu.TextureRelease surface-texture.texture
-        configure-renderbuffer;
+        configure-surface;
         raise;
     default
         logger.write-fatal "Could not acquire surface texture: ${surface-texture.status}"
@@ -348,11 +431,39 @@ fn acquire-surface-texture ()
 fn present ()
     cmd-encoder := (wgpu.DeviceCreateCommandEncoder ctx.device (typeinit@))
 
-    if ctx.requires-reconfiguration?
+    if ctx.outdated-surface?
         imgui.reset-gpu-state;
         configure-renderbuffer;
-        ctx.requires-reconfiguration? = false
+        ctx.outdated-surface? = false
         return;
+
+    if ctx.outdated-render-target?
+        local bindgroup-entries =
+            arrayof wgpu.BindGroupEntry
+                typeinit
+                    binding = 0
+                    sampler =
+                        wgpu.DeviceCreateSampler ctx.device
+                            typeinit@
+                                label = "PECO Sampler"
+                                addressModeU = 'ClampToEdge
+                                addressModeV = 'ClampToEdge
+                                addressModeW = 'ClampToEdge
+                                magFilter = 'Nearest
+                                minFilter = 'Nearest
+                                mipmapFilter = 'Linear
+                                maxAnisotropy = 1
+                typeinit
+                    binding = 1
+                    textureView = ctx.main-render-target
+        ctx.scaled-output-bindgroup =
+            wgpu.DeviceCreateBindGroup ctx.device
+                typeinit@
+                    label = "PECO Bind Group"
+                    layout = ctx.scaled-output-bindgroup-layout
+                    entryCount = 2
+                    entries = &bindgroup-entries
+        ctx.outdated-render-target? = false
 
     let surface-texture =
         try (acquire-surface-texture)
@@ -370,9 +481,9 @@ fn present ()
                 colorAttachments =
                     typeinit@
                         view =
-                            cfg.msaa ctx.msaa-resolve-source surface-texture-view
+                            cfg.msaa ctx.msaa-resolve-source ctx.main-render-target
                         resolveTarget =
-                            cfg.msaa surface-texture-view null
+                            cfg.msaa ctx.main-render-target null
                         loadOp = 'Clear
                         storeOp = 'Store
                         clearValue = wgpu.Color 0.017 0.017 0.017 1.0
@@ -393,20 +504,25 @@ fn present ()
 
     wgpu.RenderPassEncoderEnd render-pass
 
+    render-pass :=
+        wgpu.CommandEncoderBeginRenderPass cmd-encoder
+            typeinit@
+                colorAttachmentCount = 1
+                colorAttachments =
+                    typeinit@
+                        view = surface-texture-view
+                        loadOp = 'Clear
+                        storeOp = 'Store
+                        clearValue = wgpu.Color 0.0 0.0 0.0 0.0
+
+    wgpu.RenderPassEncoderSetPipeline render-pass ctx.scaled-output-pipeline
+    wgpu.RenderPassEncoderSetBindGroup render-pass 0 ctx.scaled-output-bindgroup 0 null
+    wgpu.RenderPassEncoderDraw render-pass 6 1 0 0
+
     imgui.begin-frame;
     on-imgui;
-    do
-        render-pass :=
-            wgpu.CommandEncoderBeginRenderPass cmd-encoder
-                typeinit@
-                    colorAttachmentCount = 1
-                    colorAttachments =
-                        typeinit@
-                            view = surface-texture-view
-                            loadOp = 'Load
-                            storeOp = 'Store
-        imgui.render render-pass ctx.surface-size
-        wgpu.RenderPassEncoderEnd render-pass
+    imgui.render render-pass ctx.surface-size
+    wgpu.RenderPassEncoderEnd render-pass
     imgui.end-frame;
 
     local cmd-buffer = wgpu.CommandEncoderFinish cmd-encoder null
@@ -415,6 +531,6 @@ fn present ()
     wgpu.SurfacePresent ctx.surface
 
 do
-    let init present set-present-mode set-msaa
+    let init present set-present-mode set-msaa set-resolution-scaling
     let imgui = on-imgui
     local-scope;

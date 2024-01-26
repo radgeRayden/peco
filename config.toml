@@ -8,3 +8,5 @@ height = 1080
 present-mode = "fifo"
 log-level = "warn"
 msaa = true
+resolution-scaling = 1.0
+aspect-ratio = "16:9"

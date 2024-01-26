@@ -30,8 +30,6 @@ struct DebugWindowState
 global dbg-state : DebugWindowState
 
 inline combo-from-enum-choices (name source choices applyf)
-    using import Buffer
-
     ig := imgui
     ET := (unqualified source)
     static-assert (ET < CEnum)
@@ -83,6 +81,13 @@ fn ()
             (v) -> (renderer.set-present-mode v)
         if (ig.Checkbox "MSAA enabled" &cfg.renderer.msaa)
             renderer.set-msaa cfg.renderer.msaa
+
+        # Post Processing
+        # Internal Resolution
+        local scale = (f32 ctx.renderer.resolution-scaling)
+        if (ig.SliderFloat "Resolution Scaling" &scale 0.0 1.0 "%.2f" 0)
+            renderer.set-resolution-scaling scale
+
         ig.End;
 
 fn main (argc argv)

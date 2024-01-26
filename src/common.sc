@@ -22,6 +22,8 @@ struct PecoConfig
             present-mode : wgpu.PresentMode
             log-level : wgpu.LogLevel
             msaa : bool
+            resolution-scaling : f64
+            aspect-ratio : String
 
 struct PecoWindowState
     handle : (mutable@ sdl.Window)
@@ -42,11 +44,20 @@ struct PecoRendererState
     available-present-modes : (Array wgpu.PresentMode)
 
     surface-size : ivec2
+    render-target-size : ivec2
+    resolution-scaling : f64
+    aspect-ratio : f64
+    main-render-target : wgpu.TextureView
     depth-stencil-attachment : wgpu.TextureView
+
     msaa-resolve-source : wgpu.TextureView
-    requires-reconfiguration? : bool
+    outdated-surface? : bool
+    outdated-render-target? : bool
 
     pipeline : wgpu.RenderPipeline
+    scaled-output-pipeline : wgpu.RenderPipeline
+    scaled-output-bindgroup-layout : wgpu.BindGroupLayout
+    scaled-output-bindgroup : wgpu.BindGroup
 
 struct PecoResourceManager
     inline resource-map (T)
